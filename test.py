@@ -19,6 +19,9 @@ from mmdet.datasets import (build_dataloader, build_dataset,
                             replace_ImageToTensor)
 from mmdet.models import build_detector
 
+# ignore mmcv user warning
+# import warnings
+# warnings.filterwarnings("ignore", category=UserWarning, module="mmcv")
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -248,9 +251,12 @@ def main():
                 mmcv.dump(metric_dict, json_file)
 
     if args.plot_distribution:
+        print("PLOT")
         # -------------Plot Distribution---------------
-        import torch
+        # import torch
         import matplotlib.pyplot as plt
+        from datetime import datetime
+
         raw_selectors = [x.squeeze(0) for x in __global_storage__]  # List of 5000, each has shape (12,xx1, xx2)
         # ------------
         #            |
@@ -259,7 +265,11 @@ def main():
         depth_map = sum(interpo_selectors).squeeze(0).sum(0) / len(interpo_selectors)
         plt.imshow(depth_map.cpu(), cmap='hot', vmin=4, vmax=11)
         plt.colorbar()
-        plt.show()
+        # plt.show()
+        # Generate a filename with the current date and time
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'depth_map_{timestamp}.png'
+        plt.savefig(filename)
         #            |
         # ------------
         use_next = [torch.zeros_like(x) for x in raw_selectors]  # List of 5000, each has shape (12,xx1, xx2)
@@ -296,7 +306,12 @@ def main():
         plt.legend()
         plt.xlabel('Layers')
         plt.ylabel('Ratio of tokens')
-        plt.show()
+        # plt.show()
+
+        # Generate a filename with the current date and time
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'token_ratios_{timestamp}.png'
+        plt.savefig(filename)
 
 
 if __name__ == '__main__':

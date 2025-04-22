@@ -27,8 +27,14 @@ pip install mmcv-full==1.7.0 -f https://download.openmmlab.com/mmcv/dist/cu116/t
 pip install timm==0.4.12
 pip install mmdet==2.28.1
 pip install scipy
+pip install setuptools
 cd ops & sh make.sh # compile deformable attention
 ```
+
+## SELF REPRODUCE NOTE
+#### deit_tiny_patch16_224-a1311bcf.pth is missing
+Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth and put it at pretrained
+
 
 ## Data Preparation
 

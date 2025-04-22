@@ -15,3 +15,7 @@ mmdet==2.28.1
 
 matplotlib
 scipy
+setuptools==69.5.1
+wandb
+yaof==0.40.0
+tqdm

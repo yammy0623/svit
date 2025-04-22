@@ -227,3 +227,9 @@ events.out.tfevents*
 
 # vim
 .vim
+data/
+
+
+wandb/
+example_plot.png
+.dist_test/

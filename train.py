@@ -177,7 +177,7 @@ def main():
              ),
         dict(type='TextLoggerHook', by_epoch=False)
     ]
-    wandb.init(entity='team52', project='mm seg&detect',
+    wandb.init(project='svit',
                name=cfg.exp_name, config=cfg._cfg_dict.to_dict(), reinit=False)
     wandb.save(args.config, policy='now')
 

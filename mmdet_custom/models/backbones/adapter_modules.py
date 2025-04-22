@@ -644,6 +644,209 @@ class InteractionBlockWithInheritSelection(InteractionBlock):
                               level_start_index=deform_inputs2[2], H=H, W=W)
         return x, c, sele_dict, prev_decision
 
+from tome.merge import bipartite_soft_matching, merge_source, merge_wavg
+from typing import Callable, Tuple
+import math
+
+def do_nothing(x, mode=None):
+    return x
+
+class InteractionBlockWithToMeSelection(InteractionBlock):
+    def __init__(self, ratio_per_sample=False, **kwargs):
+        super(InteractionBlockWithToMeSelection, self).__init__(**kwargs)
+        self.ratio_per_sample = ratio_per_sample
+
+    def _ratio_loss(self, selector: torch.Tensor, ratio=1.):
+        if not self.ratio_per_sample:
+            return (selector.sum() / (selector.shape[0] * selector.shape[1]) - ratio)**2
+        else:
+            n_tokens = selector.shape[1]
+            return ((selector.sum(dim=1) / n_tokens - ratio) ** 2).mean()
+
+    def _bipartite_soft_matching(
+        self,
+        metric: torch.Tensor,
+        r: int,
+        class_token: bool = False,
+        distill_token: bool = False,
+    ) -> Tuple[Callable, Callable]:
+        """
+        Applies ToMe with a balanced matching set (50%, 50%).
+
+        Input size is [batch, tokens, channels].
+        r indicates the number of tokens to remove (max 50% of tokens).
+
+        Extra args:
+        - class_token: Whether or not there's a class token.
+        - distill_token: Whether or not there's also a distillation token.
+
+        When enabled, the class token and distillation tokens won't get merged.
+        """
+        protected = 0
+        if class_token:
+            protected += 1
+        if distill_token:
+            protected += 1
+
+        # We can only reduce by a maximum of 50% tokens
+        t = metric.shape[1]
+        r = min(r, (t - protected) // 2)
+
+        if r <= 0:
+            return do_nothing, do_nothing
+        B, T, C = metric.shape
+
+        with torch.no_grad():
+            metric = metric / metric.norm(dim=-1, keepdim=True)
+            a, b = metric[..., ::2, :], metric[..., 1::2, :]
+            scores = a @ b.transpose(-1, -2)
+
+            if class_token:
+                scores[..., 0, :] = -math.inf
+            if distill_token:
+                scores[..., :, 0] = -math.inf
+
+            node_max, node_idx = scores.max(dim=-1)
+            edge_idx = node_max.argsort(dim=-1, descending=True)[..., None]
+
+            important_idx = edge_idx[..., r:, :].squeeze(-1)  # 保留的 index，形狀 [B, T - r]
+
+            mask = torch.zeros(B, T, dtype=torch.bool, device=metric.device)
+            mask.scatter_(1, important_idx, True)  # 將重要 token 設為 True（保留）
+
+            # 以下可註解掉
+            # unm_idx = edge_idx[..., r:, :]  # Unmerged Tokens
+            # src_idx = edge_idx[..., :r, :]  # Merged Tokens
+            # dst_idx = node_idx[..., None].gather(dim=-2, index=src_idx)
+
+            # if class_token:
+            #     # Sort to ensure the class token is at the start
+            #     unm_idx = unm_idx.sort(dim=1)[0]
+        return mask
+
+        # def merge(x: torch.Tensor, mode="mean") -> torch.Tensor:
+        #     src, dst = x[..., ::2, :], x[..., 1::2, :]
+        #     n, t1, c = src.shape
+        #     unm = src.gather(dim=-2, index=unm_idx.expand(n, t1 - r, c))
+        #     src = src.gather(dim=-2, index=src_idx.expand(n, r, c))
+        #     dst = dst.scatter_reduce(-2, dst_idx.expand(n, r, c), src, reduce=mode)
+
+        #     if distill_token:
+        #         return torch.cat([unm[:, :1], dst[:, :1], unm[:, 1:], dst[:, 1:]], dim=1)
+        #     else:
+        #         return torch.cat([unm, dst], dim=1)
+
+        # def unmerge(x: torch.Tensor) -> torch.Tensor:
+        #     unm_len = unm_idx.shape[1]
+        #     unm, dst = x[..., :unm_len, :], x[..., unm_len:, :]
+        #     n, _, c = unm.shape
+
+        #     src = dst.gather(dim=-2, index=dst_idx.expand(n, r, c))
+
+        #     out = torch.zeros(n, metric.shape[1], c, device=x.device, dtype=x.dtype)
+
+        #     out[..., 1::2, :] = dst
+        #     out.scatter_(dim=-2, index=(2 * unm_idx).expand(n, unm_len, c), src=unm)
+        #     out.scatter_(dim=-2, index=(2 * src_idx).expand(n, r, c), src=src)
+
+        #     return out
+
+        # return merge, unmerge
+    
+    def forward(self, x, c, indexes, deform_inputs1, deform_inputs2, H, W, blks):
+        n_skip = 3
+        x = self.injector(query=x, reference_points=deform_inputs1[0],
+                          feat=c, spatial_shapes=deform_inputs1[1],
+                          level_start_index=deform_inputs1[2])
+        layer_ratio_loss = 0.
+        has_loss = 0
+        for i in range(indexes[0], indexes[-1] + 1):
+            # not doing selection in the first few blocks
+            if i < n_skip:
+                x = blks[i](x)
+            else:
+                mask = self._bipartite_soft_matching(
+                    metric,
+                    r,
+                    self._tome_info["class_token"],
+                    self._tome_info["distill_token"],
+                )
+
+
+                if self.training:
+                    selector, diff_selector = selective_modules[i - n_skip](x) # diff_selector: Gumbel-softmax (soft + hard selection)
+                    x = diff_selector * blks[i](x, src_key_padding_mask=~selector) + \
+                        (1 - diff_selector) * x
+                    layer_ratio_loss += self._ratio_loss(diff_selector, keep_ratio[i - n_skip])
+                    has_loss += 1
+                else:
+                    if x.shape[0] == 1:
+                        selector, _ = selective_modules[i - n_skip](x)
+                        real_indices = torch.argsort(selector.int(), dim=1, descending=True)\
+                                        [:, :selector.sum(1)].unsqueeze(-1).expand(-1, -1, x.shape[-1])
+                        selected_x = torch.gather(x, 1, real_indices)
+                        selected_x = blks[i](selected_x)
+                        x.scatter_(1, real_indices, selected_x)
+                    else:
+                        selector, diff_selector = selective_modules[i - n_skip](x)
+                        l_aligned_x, l_aligned_mask = left_align_tokens2(x, selector)
+                        nt_x = torch._nested_tensor_from_mask(l_aligned_x, l_aligned_mask, mask_check=False)
+                        nt_x = blks[i](nt_x, src_key_padding_mask=None)
+                        x.masked_scatter_(selector.unsqueeze(-1), torch.cat(nt_x.unbind(), 0))
+
+        c = self.extractor(query=c, reference_points=deform_inputs2[0],
+                           feat=x, spatial_shapes=deform_inputs2[1],
+                           level_start_index=deform_inputs2[2], H=H, W=W)
+        if self.extra_extractors is not None:
+            for extractor in self.extra_extractors:
+                c = extractor(query=c, reference_points=deform_inputs2[0],
+                              feat=x, spatial_shapes=deform_inputs2[1],
+                              level_start_index=deform_inputs2[2], H=H, W=W)
+        return x, c, layer_ratio_loss, has_loss
+
+    def forward_demo(self, x, c, indexes, deform_inputs1, deform_inputs2, H, W, blks, selective_modules, keep_ratio):
+        n_skip = 3
+        # assert (blks[0].TransformerEncoderLayer.self_attn.num_heads % 2) == 0
+        x = self.injector(query=x, reference_points=deform_inputs1[0],
+                          feat=c, spatial_shapes=deform_inputs1[1],
+                          level_start_index=deform_inputs1[2])
+        sele_dict = {}
+        for i in range(indexes[0], indexes[-1] + 1):
+            if i < n_skip:
+                x = blks[i](x)
+            else:
+                if self.training:
+                    selector, diff_selector = selective_modules[i - n_skip](x)
+                    x = diff_selector * blks[i](x, src_key_padding_mask=~selector) + \
+                        (1 - diff_selector) * x
+                else:
+                    if x.shape[0] == 1:
+                        selector, _ = selective_modules[i - n_skip](x)
+                        real_indices = torch.argsort(selector.int(), dim=1, descending=True)[:,
+                                       :selector.sum(1)].unsqueeze(-1).expand(-1, -1, x.shape[-1])
+                        selected_x = torch.gather(x, 1, real_indices)
+                        selected_x = blks[i](selected_x)
+                        x.scatter_(1, real_indices, selected_x)
+                    else:
+                        selector, diff_selector = selective_modules[i - n_skip](x)
+                        l_aligned_x, l_aligned_mask = left_align_tokens2(x, selector)
+                        nt_x = torch._nested_tensor_from_mask(l_aligned_x, l_aligned_mask, mask_check=False)
+                        nt_x = blks[i](nt_x, src_key_padding_mask=None)
+                        x.masked_scatter_(selector.unsqueeze(-1), torch.cat(nt_x.unbind(), 0))
+
+
+                sele_dict[i] = selector
+
+        c = self.extractor(query=c, reference_points=deform_inputs2[0],
+                           feat=x, spatial_shapes=deform_inputs2[1],
+                           level_start_index=deform_inputs2[2], H=H, W=W)
+        if self.extra_extractors is not None:
+            for extractor in self.extra_extractors:
+                c = extractor(query=c, reference_points=deform_inputs2[0],
+                              feat=x, spatial_shapes=deform_inputs2[1],
+                              level_start_index=deform_inputs2[2], H=H, W=W)
+        return x, c, sele_dict
+
 
 class SpatialPriorModule(nn.Module):
     def __init__(self, inplanes=64, embed_dim=384):
