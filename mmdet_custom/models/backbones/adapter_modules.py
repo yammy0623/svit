@@ -549,6 +549,7 @@ class InteractionBlockWithInheritSelection(InteractionBlock):
         selector = None
         for i in range(indexes[0], indexes[-1] + 1):
             if i < n_skip:
+                # forward from blocks!!!
                 x = blks[i](x)
             else:
                 if self.training:
@@ -652,9 +653,10 @@ def do_nothing(x, mode=None):
     return x
 
 class InteractionBlockWithToMeSelection(InteractionBlock):
-    def __init__(self, ratio_per_sample=False, **kwargs):
+    def __init__(self, ratio_per_sample=False, r=10 ,**kwargs):
         super(InteractionBlockWithToMeSelection, self).__init__(**kwargs)
         self.ratio_per_sample = ratio_per_sample
+        self.r = r
 
     def _ratio_loss(self, selector: torch.Tensor, ratio=1.):
         if not self.ratio_per_sample:
@@ -763,11 +765,13 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
         for i in range(indexes[0], indexes[-1] + 1):
             # not doing selection in the first few blocks
             if i < n_skip:
-                x = blks[i](x)
+                # forward directly
+                x, _ = blks[i](x)
             else:
+                x, metric = blks[i](x)
                 mask = self._bipartite_soft_matching(
                     metric,
-                    r,
+                    self.r,
                     self._tome_info["class_token"],
                     self._tome_info["distill_token"],
                 )

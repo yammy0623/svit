@@ -372,7 +372,7 @@ class ToMeBlock(Block):
     def _drop_path2(self, x):
         return self.drop_path2(x) if hasattr(self, "drop_path2") else self.drop_path(x)
 
-    def forward(self, x: torch.Tensor, H, W) -> torch.Tensor:
+    def forward_merge(self, x: torch.Tensor, H, W) -> torch.Tensor:
         # Note: this is copied from timm.models.vision_transformer.Block with modifications.
 
         def _tome_merge(x, metric):
@@ -420,6 +420,38 @@ class ToMeBlock(Block):
         else:
             x = _inner_forward(x)
         return x
+    
+    # based on original forwad
+    def forward_metric_output(self, x, H, W):
+        
+        def _inner_forward(x):
+            if self.layer_scale:
+                x = x + self.drop_path(self.gamma1 * self.attn(self.norm1(x), H, W))
+                x = x + self.drop_path(self.gamma2 * self.mlp(self.norm2(x)))
+            else:
+                x = x + self.drop_path(self.attn(self.norm1(x), H, W))
+                x = x + self.drop_path(self.mlp(self.norm2(x)))
+                
+            if self.use_residual:
+                B, N, C = x.shape
+                x = x.reshape(B, H, W, C).permute(0, 3, 1, 2)
+                x = self.residual(x)
+                x = x.permute(0, 2, 3, 1).reshape(B, N, C)
+                
+            return x
+
+        if self.with_cp and x.requires_grad:
+            x = cp.checkpoint(_inner_forward, x)
+        else:
+            x = _inner_forward(x)
+        
+        return x
+    def forward(self, x, H, W):
+        # self.forward_merge(x, H, W)
+        x, metric = self.forward_metric_output(x, H, W)
+        return x, metric
+
+
 
 class ToMeVisionTransformer(BaseModule):
     """Vision Transformer.
@@ -518,7 +550,6 @@ class ToMeVisionTransformer(BaseModule):
     
 
     def forward_features(self, x):
-        # Apply ToMe info
         x, H, W = self.patch_embed(x)
         cls_token = self.cls_token.expand(
             x.shape[0], -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
