@@ -119,7 +119,7 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         self.spm = SpatialPriorModule(inplanes=conv_inplane,
                                       embed_dim=embed_dim)
         self.interactions = nn.Sequential(*[
-            InteractionBlockWithToMeSelection(dim=embed_dim, num_heads=deform_num_heads, n_points=n_points,
+            InteractionBlockWithToMeSelection(r=10, dim=embed_dim, num_heads=deform_num_heads, n_points=n_points,
                              init_values=init_values, drop_path=self.drop_path_rate,
                              norm_layer=self.norm_layer, with_cffn=with_cffn,
                              cffn_ratio=cffn_ratio, deform_ratio=deform_ratio,
@@ -187,7 +187,7 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         # Interaction
         for i, layer in enumerate(self.interactions):
             indexes = self.interaction_indexes[i]
-            x, c = layer(x, c, self.blocks[indexes[0]:indexes[-1] + 1],
+            x, c = layer(x, c, self.blocks[indexes[0]:indexes[-1] + 1], indexes,
                          deform_inputs1, deform_inputs2, H, W)
 
         # Split & Reshape

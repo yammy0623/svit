@@ -653,7 +653,7 @@ def do_nothing(x, mode=None):
     return x
 
 class InteractionBlockWithToMeSelection(InteractionBlock):
-    def __init__(self, ratio_per_sample=False, r=10 ,**kwargs):
+    def __init__(self, ratio_per_sample=False, r=3 ,**kwargs):
         super(InteractionBlockWithToMeSelection, self).__init__(**kwargs)
         self.ratio_per_sample = ratio_per_sample
         self.r = r
@@ -715,6 +715,8 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
 
             mask = torch.zeros(B, T, dtype=torch.bool, device=metric.device)
             mask.scatter_(1, important_idx, True)  # 將重要 token 設為 True（保留）
+            print(mask)
+
 
             # 以下可註解掉
             # unm_idx = edge_idx[..., r:, :]  # Unmerged Tokens
@@ -755,48 +757,59 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
 
         # return merge, unmerge
     
-    def forward(self, x, c, indexes, deform_inputs1, deform_inputs2, H, W, blks):
+    def forward(self, x, c, blks, indexes, deform_inputs1, deform_inputs2, H, W):
         n_skip = 3
         x = self.injector(query=x, reference_points=deform_inputs1[0],
                           feat=c, spatial_shapes=deform_inputs1[1],
                           level_start_index=deform_inputs1[2])
         layer_ratio_loss = 0.
         has_loss = 0
-        for i in range(indexes[0], indexes[-1] + 1):
-            # not doing selection in the first few blocks
-            if i < n_skip:
-                # forward directly
-                x, _ = blks[i](x)
-            else:
-                x, metric = blks[i](x)
-                mask = self._bipartite_soft_matching(
-                    metric,
-                    self.r,
-                    self._tome_info["class_token"],
-                    self._tome_info["distill_token"],
-                )
+        # print(len(blks))
+        # print(indexes)
+        # for i in range(indexes[0], indexes[-1] + 1):
+        for i in range(len(blks)):
+
+            # print("index: ", i)
+            # not doing selection in the first few blocks (svit不用)
+            # if i < n_skip:
+            #     # forward directly
+            #     x, _ = blks[i](x, H, W)
+            # else:
+            x, metric = blks[i](x, H, W)
+            # turn soft matching as a mask to modify the selective module
+            mask = self._bipartite_soft_matching(
+                metric,
+                self.r,
+                False, #self._tome_info["class_token"],
+                False, #self._tome_info["distill_token"],
+            )
+
+            masked_x = x * mask.unsqueeze(-1).float()
+            x = masked_x
 
 
-                if self.training:
-                    selector, diff_selector = selective_modules[i - n_skip](x) # diff_selector: Gumbel-softmax (soft + hard selection)
-                    x = diff_selector * blks[i](x, src_key_padding_mask=~selector) + \
-                        (1 - diff_selector) * x
-                    layer_ratio_loss += self._ratio_loss(diff_selector, keep_ratio[i - n_skip])
-                    has_loss += 1
-                else:
-                    if x.shape[0] == 1:
-                        selector, _ = selective_modules[i - n_skip](x)
-                        real_indices = torch.argsort(selector.int(), dim=1, descending=True)\
-                                        [:, :selector.sum(1)].unsqueeze(-1).expand(-1, -1, x.shape[-1])
-                        selected_x = torch.gather(x, 1, real_indices)
-                        selected_x = blks[i](selected_x)
-                        x.scatter_(1, real_indices, selected_x)
-                    else:
-                        selector, diff_selector = selective_modules[i - n_skip](x)
-                        l_aligned_x, l_aligned_mask = left_align_tokens2(x, selector)
-                        nt_x = torch._nested_tensor_from_mask(l_aligned_x, l_aligned_mask, mask_check=False)
-                        nt_x = blks[i](nt_x, src_key_padding_mask=None)
-                        x.masked_scatter_(selector.unsqueeze(-1), torch.cat(nt_x.unbind(), 0))
+
+                
+                # if self.training:
+                #     selector, diff_selector = selective_modules[i - n_skip](x) # diff_selector: Gumbel-softmax (soft + hard selection)
+                #     x = diff_selector * blks[i](x, src_key_padding_mask=~selector) + \
+                #         (1 - diff_selector) * x
+                #     layer_ratio_loss += self._ratio_loss(diff_selector, keep_ratio[i - n_skip])
+                #     has_loss += 1
+                # else:
+                #     if x.shape[0] == 1:
+                #         selector, _ = selective_modules[i - n_skip](x)
+                #         real_indices = torch.argsort(selector.int(), dim=1, descending=True)\
+                #                         [:, :selector.sum(1)].unsqueeze(-1).expand(-1, -1, x.shape[-1])
+                #         selected_x = torch.gather(x, 1, real_indices)
+                #         selected_x = blks[i](selected_x)
+                #         x.scatter_(1, real_indices, selected_x)
+                #     else:
+                #         selector, diff_selector = selective_modules[i - n_skip](x)
+                #         l_aligned_x, l_aligned_mask = left_align_tokens2(x, selector)
+                #         nt_x = torch._nested_tensor_from_mask(l_aligned_x, l_aligned_mask, mask_check=False)
+                #         nt_x = blks[i](nt_x, src_key_padding_mask=None)
+                #         x.masked_scatter_(selector.unsqueeze(-1), torch.cat(nt_x.unbind(), 0))
 
         c = self.extractor(query=c, reference_points=deform_inputs2[0],
                            feat=x, spatial_shapes=deform_inputs2[1],
@@ -806,7 +819,7 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
                 c = extractor(query=c, reference_points=deform_inputs2[0],
                               feat=x, spatial_shapes=deform_inputs2[1],
                               level_start_index=deform_inputs2[2], H=H, W=W)
-        return x, c, layer_ratio_loss, has_loss
+        return x, c # layer_ratio_loss, has_loss
 
     def forward_demo(self, x, c, indexes, deform_inputs1, deform_inputs2, H, W, blks, selective_modules, keep_ratio):
         n_skip = 3
