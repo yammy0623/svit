@@ -56,6 +56,7 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
                 for i in range(len(interaction_indexes))
             ])
         else:
+            print("Inherit Mask")
             self.interactions = nn.Sequential(*[
                 InteractionBlockWithInheritSelection(dim=embed_dim, num_heads=deform_num_heads, n_points=n_points,
                                                      init_values=init_values, drop_path=self.drop_path_rate,
@@ -110,6 +111,8 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
         return c2, c3, c4
 
     def forward(self, x, need_loss=False):
+        # breakpoint()
+        print("start x", x.shape)
         deform_inputs1, deform_inputs2 = deform_inputs(x)
 
         # SPM forward
@@ -118,16 +121,20 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
         c = torch.cat([c2, c3, c4], dim=1)
 
         # Patch Embedding forward
+        
         x, H, W = self.patch_embed(x)
+        print("H, W", H, W)
         bs, n, dim = x.shape
         pos_embed = self._get_pos_embed(self.pos_embed[:, 1:], H, W)
         x = self.pos_drop(x + pos_embed)
+        print("x oos drop", x.shape)
 
         # Interaction
         if self.inherit_mask:
             prev_decision = torch.ones(bs, n, 1, device=x.device)
         ratio_loss = 0.
         num_loss = 0
+        # breakpoint()
         for i, layer in enumerate(self.interactions):
             indexes = self.interaction_indexes[i]
             if not self.inherit_mask:
@@ -233,3 +240,37 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
 
 
         return [f1, f2, f3, f4], selectors
+
+def test_tomevit_forward():
+    # 模擬輸入圖像：batch_size=2, channels=3, height=224, width=224
+    x = torch.randn(2, 3, 224, 224)
+    
+
+    # 初始化模型（使用合適的預設參數）
+    model = SelectiveViTAdapter(
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4,
+        qkv_bias=True,
+        norm_layer=nn.LayerNorm,
+        interaction_indexes=[[0, 3], [6, 9], [10, 11]],  
+    )
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    x = x.to(device)
+    model = model.to(device)
+
+    model.eval()  # 切到 eval 模式（尤其對 batchnorm 有影響）
+
+    with torch.no_grad():
+        outputs = model(x)
+
+    # 顯示每一層的輸出 shape
+    for i, f in enumerate(outputs, 1):
+        print(f"f{i}.shape: {f.shape}")
+
+if __name__ == '__main__':
+    test_tomevit_forward()

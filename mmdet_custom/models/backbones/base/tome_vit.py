@@ -371,55 +371,6 @@ class ToMeBlock(Block):
 
     def _drop_path2(self, x):
         return self.drop_path2(x) if hasattr(self, "drop_path2") else self.drop_path(x)
-
-    # def forward_merge(self, x: torch.Tensor, H, W) -> torch.Tensor:
-    #     # Note: this is copied from timm.models.vision_transformer.Block with modifications.
-
-    #     def _tome_merge(x, metric):
-    #         r = self._tome_info["r"].pop(0)
-    #         if r > 0:
-    #             # Apply ToMe here
-    #             merge, _ = bipartite_soft_matching(
-    #                 metric,
-    #                 r,
-    #                 self._tome_info["class_token"],
-    #                 self._tome_info["distill_token"],
-    #             )
-    #             if self._tome_info["trace_source"]:
-    #                 self._tome_info["source"] = merge_source(
-    #                     merge, x, self._tome_info["source"]
-    #                 )
-    #             x, self._tome_info["size"] = merge_wavg(merge, x, self._tome_info["size"])
-    #             print(self._tome_info)
-    #         return x
-        
-    #     def _inner_forward(x):
-    #         attn_size = self._tome_info["size"] if self._tome_info["prop_attn"] else None
-    #         x_attn, metric = self.attn(self.norm1(x), attn_size)
-
-    #         if self.layer_scale:
-    #             x = x + self._drop_path1(self.gamma1 * x_attn)
-    #             x = _tome_merge(x, metric)
-    #             x = x + self._drop_path2(self.gamma2 * self.mlp(self.norm2(x)))
-    #         else:
-    #             x = x + self._drop_path1(x_attn)
-    #             x = _tome_merge(x, metric)
-    #             x = x + self._drop_path2(self.mlp(self.norm2(x)))
-
-    #         if self.use_residual:
-    #             B, N, C = x.shape
-    #             x = x.reshape(B, H, W, C).permute(0, 3, 1, 2)
-    #             x = self.residual(x)
-    #             x = x.permute(0, 2, 3, 1).reshape(B, N, C)
-                
-    #         return x
-
-
-    #     if self.with_cp and x.requires_grad:
-    #         x = cp.checkpoint(_inner_forward, x)
-    #     else:
-    #         x = _inner_forward(x)
-    #     return x
     
     # based on original forwad
     def forward_metric_output(self, x, H, W):

@@ -1,96 +1,12 @@
 import torch
 import torch.nn.functional as F
-from typing import Tuple
-
-
-from tome.merge import bipartite_soft_matching, merge_source, merge_wavg
-from tome.utils import parse_r
-from .vit_adapter import ViTAdapter
-from .adapter_modules import InteractionBlock, deform_inputs
-from .base.vit import Attention, Block
-
-
-# class ToMeBlock(Block):
-#     """
-#     Modifications:
-#      - Apply ToMe between the attention and mlp blocks
-#      - Compute and propogate token size and potentially the token sources.
-#     """
-
-#     def _drop_path1(self, x):
-#         return self.drop_path1(x) if hasattr(self, "drop_path1") else self.drop_path(x)
-
-#     def _drop_path2(self, x):
-#         return self.drop_path2(x) if hasattr(self, "drop_path2") else self.drop_path(x)
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         # Note: this is copied from timm.models.vision_transformer.Block with modifications.
-#         attn_size = self._tome_info["size"] if self._tome_info["prop_attn"] else None
-#         x_attn, metric = self.attn(self.norm1(x), attn_size)
-#         x = x + self._drop_path1(x_attn)
-
-#         r = self._tome_info["r"].pop(0)
-#         if r > 0:
-#             # Apply ToMe here
-#             merge, _ = bipartite_soft_matching(
-#                 metric,
-#                 r,
-#                 self._tome_info["class_token"],
-#                 self._tome_info["distill_token"],
-#             )
-#             if self._tome_info["trace_source"]:
-#                 self._tome_info["source"] = merge_source(
-#                     merge, x, self._tome_info["source"]
-#                 )
-#             x, self._tome_info["size"] = merge_wavg(merge, x, self._tome_info["size"])
-
-#         x = x + self._drop_path2(self.mlp(self.norm2(x)))
-#         return x
-
-# class ToMeAttention(Attention):
-#     """
-#     Modifications:
-#      - Apply proportional attention
-#      - Return the mean of k over heads from attention
-#     """
-
-#     def forward(
-#         self, x: torch.Tensor, size: torch.Tensor = None
-#     ) -> Tuple[torch.Tensor, torch.Tensor]:
-#         # Note: this is copied from timm.models.vision_transformer.Attention with modifications.
-#         B, N, C = x.shape
-#         qkv = (
-#             self.qkv(x)
-#             .reshape(B, N, 3, self.num_heads, C // self.num_heads)
-#             .permute(2, 0, 3, 1, 4)
-#         )
-#         q, k, v = (
-#             qkv[0],
-#             qkv[1],
-#             qkv[2],
-#         )  # make torchscript happy (cannot use tensor as tuple)
-
-#         attn = (q @ k.transpose(-2, -1)) * self.scale
-
-#         # Apply proportional attention
-#         if size is not None:
-#             attn = attn + size.log()[:, None, None, :, 0]
-
-#         attn = attn.softmax(dim=-1)
-#         attn = self.attn_drop(attn)
-
-#         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
-#         x = self.proj(x)
-#         x = self.proj_drop(x)
-
-#         # Return k as well here
-#         return x, k.mean(1)
-
 import math
 
 import torch.nn as nn
 # from .base.vit import TIMMVisionTransformer
 from .base.tome_vit import ToMeVisionTransformer
+# from mmdet_custom.models.backbones.base.tome_vit import ToMeVisionTransformer
+
 from mmdet.models.builder import BACKBONES
 from .adapter_modules import SpatialPriorModule, InteractionBlockWithToMeSelection, deform_inputs
 from torch.nn.init import normal_
@@ -187,7 +103,7 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         # Interaction
         for i, layer in enumerate(self.interactions):
             indexes = self.interaction_indexes[i]
-            x, c = layer(x, c, self.blocks[indexes[0]:indexes[-1] + 1], indexes,
+            x, c = layer(x, c, self.blocks[indexes[0]:indexes[-1] + 1],
                          deform_inputs1, deform_inputs2, H, W)
 
         # Split & Reshape
@@ -213,3 +129,40 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         f3 = self.norm3(c3)
         f4 = self.norm4(c4)
         return [f1, f2, f3, f4]
+
+def test_tomevit_forward():
+    # 模擬輸入圖像：batch_size=2, channels=3, height=224, width=224
+    x = torch.randn(1, 3, 224, 224)
+    
+
+    # 初始化模型（使用合適的預設參數）
+    model = ToMeViTAdapter(
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        embed_dim=768,
+        depth=12,
+        num_heads=12,
+        mlp_ratio=4,
+        qkv_bias=True,
+        norm_layer=nn.LayerNorm,
+        interaction_indexes=[[0, 3], [6, 9], [10, 11]],  # 這必須依你的 block 數量調整
+    )
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    x = x.to(device)
+    model = model.to(device)
+
+    model.eval()  # 切到 eval 模式（尤其對 batchnorm 有影響）
+
+    with torch.no_grad():
+        outputs = model(x)
+
+    # 顯示每一層的輸出 shape
+    for i, f in enumerate(outputs, 1):
+        print(f"f{i}.shape: {f.shape}")
+
+if __name__ == '__main__':
+    test_tomevit_forward()
+
+# python -m mmdet_custom.models.backbones.tome_vit_adapter
