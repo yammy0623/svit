@@ -32,10 +32,39 @@ cd ops & sh make.sh # compile deformable attention
 ```
 
 ## SELF REPRODUCE NOTE
-#### deit_tiny_patch16_224-a1311bcf.pth is missing
+### deit_tiny_patch16_224-a1311bcf.pth is missing
 Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth and put it at pretrained
 
+### Reproduce Result
+```
+| Metric                       | ViT     | SViT    |
+|-----------------------------|---------|---------|
+| bbox mAP@[0.50:0.95]        | 0.4581  | 0.4559  |
+| bbox mAP@0.50               | 0.6703  | 0.6682  |
+| bbox mAP@0.75               | 0.5007  | 0.4987  |
+| bbox mAP (small)            | 0.3029  | 0.3010  |
+| bbox mAP (medium)           | 0.4865  | 0.4880  |
+| bbox mAP (large)            | 0.5967  | 0.5913  |
+| bbox AR@[0.50:0.95]         | 0.593   | 0.590   |
+| bbox AR (small)             | 0.425   | 0.419   |
+| bbox AR (medium)            | 0.624   | 0.625   |
+| bbox AR (large)             | 0.743   | 0.736   |
 
+```
+```
+| Metric                       | ViT     | SViT    |
+|-----------------------------|---------|---------|
+| segm mAP@[0.50:0.95]        | 0.4087  | 0.4070  |
+| segm mAP@0.50               | 0.6390  | 0.6360  |
+| segm mAP@0.75               | 0.4390  | 0.4360  |
+| segm mAP (small)            | 0.2200  | 0.2190  |
+| segm mAP (medium)           | 0.4355  | 0.4370  |
+| segm mAP (large)            | 0.5949  | 0.5900  |
+| segm AR@[0.50:0.95]         | 0.535   | 0.533   |
+| segm AR (small)             | 0.360   | 0.360   |
+| segm AR (medium)            | 0.570   | 0.570   |
+| segm AR (large)             | 0.701   | 0.694   |
+```
 ## Data Preparation
 
 Please prepare COCO according to the guidelines in [MMDetection](https://github.com/open-mmlab/mmdetection/blob/master/docs/en/1_exist_data_model.md). <br/>
