@@ -36,7 +36,7 @@ cd ops & sh make.sh # compile deformable attention
 Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth and put it at pretrained
 
 ### Reproduce Result
-```
+#### Bounding Box
 | Metric                       | ViT     | SViT    |
 |-----------------------------|---------|---------|
 | bbox mAP@[0.50:0.95]        | 0.4581  | 0.4559  |
@@ -50,8 +50,7 @@ Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf
 | bbox AR (medium)            | 0.624   | 0.625   |
 | bbox AR (large)             | 0.743   | 0.736   |
 
-```
-```
+#### Segmentation
 | Metric                       | ViT     | SViT    |
 |-----------------------------|---------|---------|
 | segm mAP@[0.50:0.95]        | 0.4087  | 0.4070  |
@@ -64,7 +63,7 @@ Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf
 | segm AR (small)             | 0.360   | 0.360   |
 | segm AR (medium)            | 0.570   | 0.570   |
 | segm AR (large)             | 0.701   | 0.694   |
-```
+
 ## Data Preparation
 
 Please prepare COCO according to the guidelines in [MMDetection](https://github.com/open-mmlab/mmdetection/blob/master/docs/en/1_exist_data_model.md). <br/>
