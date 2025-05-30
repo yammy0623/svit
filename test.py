@@ -192,12 +192,14 @@ def main():
 
     # build the dataloader
     dataset = build_dataset(cfg.data.test)
+    
     print(f'num_workers: {cfg.data.workers_per_gpu}')
     data_loader = build_dataloader(dataset,
                                    samples_per_gpu=samples_per_gpu,
                                    workers_per_gpu=cfg.data.workers_per_gpu,
                                    dist=distributed,
                                    shuffle=False)
+    
 
     # build the model and load checkpoint
     cfg.model.train_cfg = None

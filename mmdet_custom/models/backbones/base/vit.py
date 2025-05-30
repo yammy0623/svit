@@ -328,12 +328,17 @@ class Block(nn.Module):
     def forward(self, x, H, W):
         
         def _inner_forward(x):
+            # print("x0", x)
             if self.layer_scale:
                 x = x + self.drop_path(self.gamma1 * self.attn(self.norm1(x), H, W))
                 x = x + self.drop_path(self.gamma2 * self.mlp(self.norm2(x)))
             else:
                 x = x + self.drop_path(self.attn(self.norm1(x), H, W))
+                # print("x2", x)
                 x = x + self.drop_path(self.mlp(self.norm2(x)))
+                # print("x3", x)
+                # breakpoint()
+                
                 
             if self.use_residual:
                 B, N, C = x.shape
@@ -400,6 +405,7 @@ class TIMMVisionTransformer(BaseModule):
         logging.info('window attention:', window_attn)
         logging.info('window size:', window_size)
         logging.info('layer scale:', layer_scale)
+
 
         self.patch_embed = embed_layer(
             img_size=img_size, patch_size=patch_size,

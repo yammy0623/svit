@@ -91,14 +91,21 @@ class ToMeViTAdapter(ToMeVisionTransformer):
 
         # SPM forward
         c1, c2, c3, c4 = self.spm(x)
+        # print("c1: ", c1.shape)
+        # print("c2: ", c2.shape)
+        # print("c3: ", c3.shape)
+        # print("c4: ", c4.shape)
         c2, c3, c4 = self._add_level_embed(c2, c3, c4)
         c = torch.cat([c2, c3, c4], dim=1)
-
+        # print("c: ", c.shape)
+    
         # Patch Embedding forward
         x, H, W = self.patch_embed(x)
+        # print("x before: ", x.shape)
         bs, n, dim = x.shape
         pos_embed = self._get_pos_embed(self.pos_embed[:, 1:], H, W)
         x = self.pos_drop(x + pos_embed)
+        # print("x after embedded: ", x.shape)
 
         # Interaction
         for i, layer in enumerate(self.interactions):

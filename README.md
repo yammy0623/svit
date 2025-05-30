@@ -3,21 +3,8 @@
 This repository contains code for the paper "[Revisiting Token Pruning for Object Detection and Instance Segmentation
 ](https://arxiv.org/abs/2306.07050)".
 
-<p align="center">
-<img width="750" alt="image" src="https://user-images.githubusercontent.com/71677542/231485925-3ff27d10-a67c-4e1b-93a7-45ba6bbe5817.png">
-</p>
 
 
-## Abstract
-Vision Transformers (ViTs) have shown impressive performance in computer vision, but their high computational cost, quadratic in the number of tokens, limits their adoption in computation-constrained applications. 
-However, this large number of tokens may not be necessary, as not all tokens are equally important. 
-In this paper, we investigate token pruning to accelerate inference for object detection and instance segmentation, extending prior works from image classification. 
-Through extensive experiments, we offer four insights for dense tasks: (i) tokens should not be completely pruned and discarded, but rather preserved in the feature maps for later use. 
-(ii) reactivating previously pruned tokens can further enhance model performance. 
-(iii) a dynamic pruning rate based on images is better than a fixed pruning rate. 
-(iv) a lightweight, 2-layer MLP can effectively prune tokens, achieving accuracy comparable with complex gating networks with a simpler design. 
-We evaluate the impact of these design choices on COCO dataset and present a method integrating these insights that outperforms prior art token pruning models, significantly reducing performance drop from ~1.5 mAP to ~0.3 mAP for both boxes and masks. 
-Compared to the dense counterpart that uses all tokens, our method achieves up to 34% faster inference speed for the whole network and 46% for the backbone.
 
 ## Preparation
 recommended environment:
@@ -37,32 +24,50 @@ Download from https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf
 
 ### Reproduce Result
 #### Bounding Box
-| Metric                       | ViT     | SViT    |
-|-----------------------------|---------|---------|
-| bbox mAP@[0.50:0.95]        | 0.4581  | 0.4559  |
-| bbox mAP@0.50               | 0.6703  | 0.6682  |
-| bbox mAP@0.75               | 0.5007  | 0.4987  |
-| bbox mAP (small)            | 0.3029  | 0.3010  |
-| bbox mAP (medium)           | 0.4865  | 0.4880  |
-| bbox mAP (large)            | 0.5967  | 0.5913  |
-| bbox AR@[0.50:0.95]         | 0.593   | 0.590   |
-| bbox AR (small)             | 0.425   | 0.419   |
-| bbox AR (medium)            | 0.624   | 0.625   |
-| bbox AR (large)             | 0.743   | 0.736   |
+| Metrics                  | r = 0  | r = 10 | r = 20 | r = 30 | r = 50 | 
+| -------------------- | ------ | ------ | ------ | ------ | ------ |
+| AP (IoU=0.50:0.95)   | 0.458  | 0.458  | 0.457  | 0.456  | 0.457  |
+| AP (IoU=0.50)        | 0.670  | 0.670  | 0.669  | 0.667  | 0.668  |
+| AP (IoU=0.75)        | 0.501  | 0.501  | 0.499  | 0.497  | 0.499  |
+| AP (small)           | 0.303  | 0.303  | 0.305  | 0.305  | 0.305  |
+| AP (medium)          | 0.486  | 0.486  | 0.487  | 0.484  | 0.486  |
+| AP (large)           | 0.597  | 0.597  | 0.597  | 0.598  | 0.599  |
+| AR (maxDets=1000)    | 0.593  | 0.593  | 0.592  | 0.592  | 0.592  |
+| AR (small)           | 0.425  | 0.425  | 0.421  | 0.421  | 0.421  |
+| AR (medium)          | 0.624  | 0.624  | 0.624  | 0.624  | 0.624  |
+| AR (large)           | 0.743  | 0.743  | 0.743  | 0.743  | 0.744  |
+| Elapsed Time (seconds) | 407.00 | 668.22 | 647.12 | 644.67 | 643.36 | 
 
 #### Segmentation
-| Metric                       | ViT     | SViT    |
-|-----------------------------|---------|---------|
-| segm mAP@[0.50:0.95]        | 0.4087  | 0.4070  |
-| segm mAP@0.50               | 0.6390  | 0.6360  |
-| segm mAP@0.75               | 0.4390  | 0.4360  |
-| segm mAP (small)            | 0.2200  | 0.2190  |
-| segm mAP (medium)           | 0.4355  | 0.4370  |
-| segm mAP (large)            | 0.5949  | 0.5900  |
-| segm AR@[0.50:0.95]         | 0.535   | 0.533   |
-| segm AR (small)             | 0.360   | 0.360   |
-| segm AR (medium)            | 0.570   | 0.570   |
-| segm AR (large)             | 0.701   | 0.694   |
+| Metrics                   | r = 0  | r = 10 | r = 20 | r = 30 | r = 50 | 
+| -------------------- | ------ | ------ | ------ | ------ | ------ |
+| AP (IoU=0.50:0.95)   | 0.458  | 0.409  | 0.409  | 0.409  | 0.410  |
+| AP (IoU=0.50)        | 0.670  | 0.639  | 0.640  | 0.640  | 0.641  |
+| AP (IoU=0.75)        | 0.439  | 0.439  | 0.438  | 0.438  | 0.439  |
+| AP (small)           | 0.303  | 0.220  | 0.220  | 0.221  | 0.221  |
+| AP (medium)          | 0.486  | 0.436  | 0.436  | 0.436  | 0.436  |
+| AP (large)           | 0.597  | 0.595  | 0.594  | 0.594  | 0.595  |
+| AR (maxDets=1000)    | 0.593  | 0.535  | 0.535  | 0.535  | 0.536  |
+| AR (small)           | 0.425  | 0.360  | 0.360  | 0.360  | 0.361  |
+| AR (medium)          | 0.624  | 0.570  | 0.570  | 0.570  | 0.570  |
+| AR (large)           | 0.743  | 0.701  | 0.701  | 0.701  | 0.701  |
+| Elapsed Time (seconds) | 407.00 | 680.85 | 659.73 | 656.67 | 655.40 | 
+
+## Docker Run
+```
+docker run -it --name svit_container_new --runtime=nvidia --gpus all --shm-size=16g \
+    --device=/dev/nvidia-uvm \
+    --device=/dev/nvidia-uvm-tools \
+    --device=/dev/nvidia-modeset \
+    --device=/dev/nvidiactl \
+    --device=/dev/nvidia0 \
+    --device=/dev/nvidia1 \
+    --device=/dev/nvidia2 \
+    --device=/dev/nvidia3 \
+    -v /tmp2/christine/svit:/workspace \
+    -v /home/christine:/home \
+    complete_image /bin/bash
+```
 
 ## Data Preparation
 

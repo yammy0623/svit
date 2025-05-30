@@ -662,6 +662,7 @@ class InteractionBlockWithInheritSelection(InteractionBlock):
 from tome.merge import bipartite_soft_matching, merge_source, merge_wavg
 from typing import Callable, Tuple
 import math
+import numpy as np
 
 def do_nothing(x, mode=None):
     return x
@@ -751,54 +752,16 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
         x = self.injector(query=x, reference_points=deform_inputs1[0],
                           feat=c, spatial_shapes=deform_inputs1[1],
                           level_start_index=deform_inputs1[2])
-
-        # 現在是即便沒過這邊的處理，出來的結果也都會有問題!
-        # 有可能是ViT forward的block有問題嗎
-
-        n_skip = 3 #3
+        
+        n_skip = 3
 
         for i, blk in enumerate(blks):
-            print(i)
-
+            
             if i < n_skip:
-                x, metric = blks[i](x, H, W)
+                x, metric = blks[i](x, 0, H, W)
             else:
                 B, N, D = x.shape
-                # breakpoint()
-                # print(i)
-                _, metric = blks[i](x, H, W)
-                x_before = x.clone()
-                
-                mask = self._bipartite_soft_matching(
-                    metric,
-                    self.r,
-                    False, #self._tome_info["class_token"],
-                    False, #self._tome_info["distill_token"],
-                )
-                all_indices = torch.arange(N, device=mask.device).unsqueeze(0).expand(B, -1)  # [B, N]
-                real_indices = all_indices[mask].view(B, -1).unsqueeze(-1).expand(-1, -1, D)  # [B, M, D]
-                # gather 選出要處理的 patch
-                selected_x = torch.gather(x, 1, real_indices)
-
-                selected_x, _ = blks[i](selected_x, H, W)
-                selected_x = selected_x.to(x.dtype)
-
-                # print("real_indices", real_indices)
-                # print("selected_x shape", selected_x.shape)
-                # print("x shape", x.shape)
-                
-                x = x.scatter(1, real_indices, selected_x)
-
-                diff = (x - x_before).abs().max()
-                if diff < 1e-5:
-                    print(" Non-masked patches are identical.")
-                else:
-                    print("Non-masked patches differ! Max difference:", diff.item())
-                
-                
-                # print("indexes shape", real_indices.shape)
-                # print("mask shape", mask.shape)
-                # print("x shape", x.shape)
+                x, metric = blks[i](x, self.r, H, W)
                
 
         c = self.extractor(query=c, reference_points=deform_inputs2[0],
@@ -809,7 +772,7 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
                 c = extractor(query=c, reference_points=deform_inputs2[0],
                               feat=x, spatial_shapes=deform_inputs2[1],
                               level_start_index=deform_inputs2[2], H=H, W=W)
-        return x, c # layer_ratio_loss, has_loss
+        return x, c
 
 
 
@@ -851,15 +814,22 @@ class SpatialPriorModule(nn.Module):
 
     def forward(self, x):
         c1 = self.stem(x)
+        # print("c1: ", c1.shape)
+        
         c2 = self.conv2(c1)
+        # print("c2: ", c2.shape)
         c3 = self.conv3(c2)
         c4 = self.conv4(c3)
         c1 = self.fc1(c1)
         c2 = self.fc2(c2)
         c3 = self.fc3(c3)
         c4 = self.fc4(c4)
+        # print("c1 after fc2: ", c1.shape)
+        
+        # print("c2 after fc2: ", c2.shape)
 
         bs, dim, _, _ = c1.shape
+        
         # c1 = c1.view(bs, dim, -1).transpose(1, 2)  # 4s
         c2 = c2.view(bs, dim, -1).transpose(1, 2)  # 8s
         c3 = c3.view(bs, dim, -1).transpose(1, 2)  # 16s

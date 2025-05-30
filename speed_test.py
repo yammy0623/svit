@@ -7,12 +7,18 @@ __supported_models__ = ['GumbelTwoStageDetector', 'MaskRCNN']
 all_models = \
 """
 configs/mask_rcnn/vit-adapter-t-3x.py, pretrained/vit-adapter-t-3x.pth
-configs/mask_rcnn/svit-adapter-t-0.5x-ftune.py, pretrained/svit-adapter-t-0.5x.pth
 
-configs/mask_rcnn/vit-adapter-s-3x.py, pretrained/vit-adapter-s-3x.pth
-configs/mask_rcnn/svit-adapter-s-0.33x-ftune.py, pretrained/svit-adapter-s-0.33x.pth
 """
+# configs/mask_rcnn/svit-adapter-t-0.5x-ftune.py, pretrained/svit-adapter-t-0.5x.pth
 
+# """
+# configs/mask_rcnn/vit-adapter-t-3x.py, pretrained/vit-adapter-t-3x.pth
+# configs/mask_rcnn/svit-adapter-t-0.5x-ftune.py, pretrained/svit-adapter-t-0.5x.pth
+
+# configs/mask_rcnn/vit-adapter-s-3x.py, pretrained/vit-adapter-s-3x.pth
+# configs/mask_rcnn/svit-adapter-s-0.33x-ftune.py, pretrained/svit-adapter-s-0.33x.pth
+# """
+# configs/mask_rcnn/tome-vit-adapter-t-3x.py pretrained/vit-adapter-t-3x.pth
 
 from argparse import ArgumentParser
 from mmdet.apis import (async_inference_detector, inference_detector,
