@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument('img', help='Image file')
     parser.add_argument('config', help='Config file')
     parser.add_argument('checkpoint', help='Checkpoint file')
+    parser.add_argument('r', type=int, default=0)
     parser.add_argument('--out', type=str, default="demo", help='out dir')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
@@ -47,8 +48,8 @@ def main(args):
     # test a single image
     result = inference_detector(model, args.img)
 
-    mmcv.mkdir_or_exist(args.out)
-    out_file = osp.join(args.out, osp.basename(args.img))
+    mmcv.mkdir_or_exist(args.out+"/"+str(args.r))
+    out_file = osp.join(args.out+"/"+str(args.r), osp.basename(args.img))
     # show the results
     model.show_result(
         args.img,
@@ -61,6 +62,7 @@ def main(args):
         # out_file=out_file
     )
 
+
     from draw_functions import draw_selected_patches
     assert len(__global_storage__) == 1
     selectors = __global_storage__[0].squeeze(0)  # (12, h, w)
@@ -69,7 +71,7 @@ def main(args):
     plt.colorbar(fraction=0.030, pad=0.03)
     plt.tick_params(axis='both', left=False, top=False, right=False, bottom=False, labelleft=False, labeltop=False,
                     labelright=False, labelbottom=False)
-    plt.savefig('demo/depth_map', bbox_inches='tight', pad_inches=0.02)
+    plt.savefig("demo/"+str(args.r)+"/depth_map", bbox_inches='tight', pad_inches=0.02)
     plt.show()
 
     used_next_layer = torch.zeros_like(selectors)
@@ -84,12 +86,19 @@ def main(args):
         draw_selected_patches(tensor, selectors[i].view(-1),
                               used_next_layer[i].view(-1),
                               used_later_layers[i].view(-1),
-                              name=f'demo/{i}.png')
+                              name=f"demo/{str(args.r)}/{i}.png")
 
-    print('Token Use Rate:')
-    for i in range(selectors.shape[0]):
-        print(f'{selectors[i].sum() / selectors.shape[1] / selectors.shape[2] * 100:.3f}%')
-    print(f'total use rate: {selectors.sum() / (selectors.shape[0] * selectors.shape[1] * selectors.shape[2]):.3f}')
+    with open("demo/"+str(args.r)+"/token_used.txt", "w") as f:
+        print('Token Use Rate:')
+        f.write("Token Use Rate:\n")
+        for i in range(selectors.shape[0]):
+            rate = selectors[i].sum() / selectors.shape[1] / selectors.shape[2] * 100
+            print(f"{rate:.3f}%")
+            f.write(f"{rate:.3f}%\n")
+            
+        total_rate = selectors.sum() / (selectors.shape[0] * selectors.shape[1] * selectors.shape[2])
+        print(f'total use rate: {total_rate:.3f}')
+        f.write(f"total use rate: {total_rate:.3f}\n")
 
 
 async def async_main(args):
