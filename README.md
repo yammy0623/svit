@@ -147,7 +147,11 @@ python speed_test.py
 ## Image Demo
 We provide the script to visualize the token pruning process:
 ```shell
-python seletor_demo.py data/coco/val2017/000000046252.jpg configs/mask_rcnn/demo-svit-adapter-s-0.33x-ftune.py pretrained/svit-adapter-s-0.33x.pth
+python selector_demo.py data/coco/val2017/000000046252.jpg configs/mask_rcnn/demo-svit-adapter-s-0.33x-ftune.py pretrained/svit-adapter-s-0.33x.pth 0
+
+python selector_demo.py data/coco/val2017/000000046252.jpg configs/mask_rcnn/demo-svit-adapter-t-0.5x-ftune.py pretrained/svit-adapter-t-0.5x.pth 0
+
+python selector_demo.py data/coco/val2017/000000046252.jpg configs/diff_r_test_demo/tome-vit-adapter-t-3x_1000.py pretrained/vit-adapter-t-3x.pth 1000
 ```
 
 
@@ -175,3 +179,22 @@ This repository is released under the Apache 2.0 license as found in the [LICENS
 
 This project has used code from the following projects:<li>
 [timm](https://github.com/huggingface/pytorch-image-models), [DeiT](https://github.com/facebookresearch/deit/blob/main/README_deit.md), [EViT](https://github.com/youweiliang/evit), [MMDetection](https://github.com/open-mmlab/mmdetection) and [ViT-Adapter](https://github.com/czczup/ViT-Adapter).</li>
+
+
+# Ablation Study
+## visualization and token usage
+```
+./demo_test.sh
+```
+The image will be saved to demo folder
+
+## test performance
+```
+./dist_test.sh configs/mask_rcnn/tome-vit-adapter-t-3x.py pretrained/vit-adapter-t-3x.pth 1 29800 --eval bbox segm
+```
+The result will be saved to result folder
+## test speed
+```
+python speed_test.py
+```
+The result will be appended to speed.txt

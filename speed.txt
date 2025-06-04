@@ -1,0 +1,154 @@
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 1]: 17.151 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 2]: 17.066 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 3]: 16.928 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 4]: 16.341 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 5]: 16.756 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Average]: 16.848 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 1]: 16.835 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 2]: 16.791 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 3]: 16.765 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 4]: 16.756 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 5]: 16.819 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Average]: 16.794 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 1]: 16.736 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 2]: 16.758 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 3]: 16.674 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 4]: 16.677 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 5]: 16.682 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Average]: 16.705 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 1]: 16.862 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 2]: 16.873 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 3]: 16.825 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 4]: 16.831 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 5]: 16.826 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Average]: 16.843 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 1]: 16.755 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 2]: 16.726 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 3]: 16.713 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 4]: 16.026 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 5]: 16.756 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Average]: 16.595 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 1]: 16.815 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 2]: 16.475 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 3]: 16.845 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 4]: 16.803 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 5]: 16.800 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Average]: 16.748 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 1]: 16.922 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 2]: 16.881 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 3]: 16.934 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 4]: 16.856 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 5]: 16.925 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Average]: 16.904 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 1]: 16.783 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 2]: 16.791 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 3]: 16.795 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 4]: 16.775 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 5]: 16.782 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Average]: 16.785 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 1]: 16.866 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 2]: 16.871 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 3]: 16.917 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 4]: 16.889 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 5]: 16.880 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Average]: 16.885 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 1]: 16.759 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 2]: 16.797 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 3]: 16.780 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 4]: 16.803 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 5]: 16.777 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Average]: 16.783 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 1]: 16.809 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 2]: 16.746 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 3]: 16.758 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 4]: 16.845 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 5]: 16.810 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Average]: 16.793 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 1]: 12.608 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 2]: 10.634 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 3]: 10.644 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 4]: 10.567 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Run 5]: 10.723 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py [Average]: 11.035 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 1]: 10.463 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 2]: 10.333 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 3]: 10.414 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 4]: 10.337 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Run 5]: 10.329 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py [Average]: 10.375 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 1]: 10.402 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 2]: 10.371 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 3]: 10.369 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 4]: 10.389 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Run 5]: 10.314 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py [Average]: 10.369 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 1]: 10.527 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 2]: 10.421 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 3]: 10.340 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 4]: 10.650 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Run 5]: 10.536 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py [Average]: 10.495 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 1]: 10.394 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 2]: 10.514 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 3]: 10.450 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 4]: 10.394 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Run 5]: 14.012 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py [Average]: 11.153 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 1]: 16.194 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 2]: 13.957 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 3]: 10.422 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 4]: 10.430 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Run 5]: 10.393 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py [Average]: 12.279 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 1]: 10.513 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 2]: 10.492 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 3]: 10.509 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 4]: 10.533 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Run 5]: 10.435 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py [Average]: 10.496 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 1]: 10.355 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 2]: 10.425 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 3]: 10.675 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 4]: 10.361 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Run 5]: 10.353 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py [Average]: 10.434 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 1]: 10.414 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 2]: 10.528 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 3]: 10.551 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 4]: 10.427 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Run 5]: 10.552 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py [Average]: 10.494 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 1]: 10.476 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 2]: 10.453 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 3]: 10.452 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 4]: 10.577 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Run 5]: 10.454 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py [Average]: 10.482 imgs/s
+
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 1]: 10.567 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 2]: 10.523 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 3]: 10.593 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 4]: 10.712 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Run 5]: 16.169 imgs/s
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py [Average]: 11.713 imgs/s
+

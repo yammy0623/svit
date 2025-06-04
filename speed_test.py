@@ -6,9 +6,23 @@ __supported_models__ = ['GumbelTwoStageDetector', 'MaskRCNN']
 #///////////// Testing Models ///////////
 all_models = \
 """
-configs/mask_rcnn/vit-adapter-t-3x.py, pretrained/vit-adapter-t-3x.pth
-
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_10.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_100.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_200.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_300.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_400.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_500.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_600.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_700.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_800.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_900.py, pretrained/vit-adapter-t-3x.pth
+configs/diff_r_test_speed/tome-vit-adapter-t-3x_1000.py, pretrained/vit-adapter-t-3x.pth
 """
+
+# """
+# configs/mask_rcnn/vit-adapter-t-3x.py, pretrained/vit-adapter-t-3x.pth
+# """
+
 # configs/mask_rcnn/svit-adapter-t-0.5x-ftune.py, pretrained/svit-adapter-t-0.5x.pth
 
 # """
@@ -50,6 +64,9 @@ def parse_args():
         '--async-test',
         action='store_true',
         help='whether to set async options for async inference.')
+    parser.add_argument(
+        '--r', type=int, default=0)
+            
     args = parser.parse_args()
     return args
 
@@ -58,7 +75,7 @@ def main(args):
     imgs = test_imgs[0]
     WARM_UP = 100
     N_TEST = 200
-    REPEAT = 2
+    REPEAT = 5
 
     # build the model from a config file and a checkpoint file
     for line in all_models.split("\n"):
@@ -79,6 +96,7 @@ def main(args):
         imgs = [imgs]
         is_batch = False
     cfg = model.cfg
+    # print("pruning: ", cfg.model.backbone.r)
     device = next(model.parameters()).device  # model device
     cfg.data.test.pipeline = replace_ImageToTensor(cfg.data.test.pipeline)
     test_pipeline = Compose(cfg.data.test.pipeline)
@@ -111,19 +129,31 @@ def main(args):
         model.eval()
 
         print('speed (imgs/s):')
-        with torch.no_grad():
-            for k in range(WARM_UP):
-                model(return_loss=False, rescale=True, **data)
-            for k in range(REPEAT):
-                start = time.time()
-                for i in range(N_TEST):
+        with open("speed.txt", "a") as f:
+            with torch.no_grad():
+                for k in range(WARM_UP):
                     model(return_loss=False, rescale=True, **data)
-                torch.cuda.synchronize()
-                end = time.time()
-                elapse = end - start
-                speed = N_TEST / elapse
-                print(f'{model_config}: {speed:.3f}')
-            print('\n')
+
+                speeds = []  # 用來記錄每次的 speed
+
+                for k in range(REPEAT):
+                    start = time.time()
+                    for i in range(N_TEST):
+                        model(return_loss=False, rescale=True, **data)
+                    torch.cuda.synchronize()
+                    end = time.time()
+                    elapse = end - start
+                    speed = N_TEST / elapse
+                    speeds.append(speed)
+
+                    line = f'{model_config} [Run {k+1}]: {speed:.3f} imgs/s'
+                    print(line)
+                    f.write(line + '\n')
+
+                avg_speed = sum(speeds) / len(speeds)
+                avg_line = f'{model_config} [Average]: {avg_speed:.3f} imgs/s'
+                print(avg_line)
+                f.write(avg_line + '\n\n') 
 
 
 

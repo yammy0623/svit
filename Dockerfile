@@ -7,6 +7,4 @@ WORKDIR /workspace
 
 RUN pip3 install --no-cache-dir numpy opencv-python
 
-VOLUME ["/tmp2/christine/svit"]
-
 CMD ["bash"]

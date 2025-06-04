@@ -1,4 +1,7 @@
-# Copyright (c) Shanghai AI Lab. All rights reserved.
+import os
+
+# 原始 config 的模板字串
+template = """# Copyright (c) Shanghai AI Lab. All rights reserved.
 _base_ = [
     '../_base_/models/mask_rcnn_r50_fpn.py',
     '../_base_/datasets/coco_instance.py',
@@ -8,7 +11,7 @@ _base_ = [
 # pretrained = 'https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth'
 pretrained = 'pretrained/deit_tiny_patch16_224-a1311bcf.pth'
 model = dict(
-    type='DemoGumbelTwoStageDetector',
+    type='GumbelTwoStageDetector',
     backbone=dict(
         _delete_=True,
         type='ToMeViTAdapter',
@@ -27,19 +30,17 @@ model = dict(
         interaction_indexes=[[0, 2], [3, 5], [6, 8], [9, 11]],
         window_attn=[False] * 12,
         window_size=[None] * 12,
-        pretrained=pretrained , # below are the tome params
-        r=10,
-        trace_source=False, 
+        pretrained=pretrained,
+        r={r},
+        trace_source=False,
         prop_attn=True),
     neck=dict(
         type='FPN',
         in_channels=[192, 192, 192, 192],
         out_channels=256,
         num_outs=5))
-# optimizer
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
-# augmentation strategy originates from DETR / Sparse RCNN
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
@@ -82,18 +83,18 @@ train_pipeline = [
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
 ]
-data = dict(samples_per_gpu=1, # 4
+data = dict(samples_per_gpu=1,
             workers_per_gpu=2,
             train=dict(pipeline=train_pipeline))
 optimizer = dict(
     _delete_=True, type='AdamW', lr=0.0001, weight_decay=0.05,
     paramwise_cfg=dict(
-    custom_keys={
-        'level_embed': dict(decay_mult=0.),
-        'pos_embed': dict(decay_mult=0.),
-        'norm': dict(decay_mult=0.),
-        'bias': dict(decay_mult=0.)
-    }))
+        custom_keys={{
+            'level_embed': dict(decay_mult=0.),
+            'pos_embed': dict(decay_mult=0.),
+            'norm': dict(decay_mult=0.),
+            'bias': dict(decay_mult=0.)
+        }}))
 optimizer_config = dict(grad_clip=None)
 fp16 = dict(loss_scale=dict(init_scale=512))
 checkpoint_config = dict(
@@ -104,3 +105,17 @@ checkpoint_config = dict(
 
 work_dir = 'output/tome-vit-adapter-t'
 exp_name = 'tome-vit-adapter-t'
+"""
+
+# 設定儲存路徑
+output_dir = 'configs/diff_r_test_speed'
+os.makedirs(output_dir, exist_ok=True)
+
+# 依序產生 r=100,200,...1000 的 config 檔案
+for r in range(100, 1001, 100):
+    config_filename = f'tome-vit-adapter-t-3x_{r}.py'
+    output_path = os.path.join(output_dir, config_filename)
+    with open(output_path, 'w') as f:
+        f.write(template.format(r=r))
+
+print(f"Config files for r=100 to 1000 saved in '{output_dir}'")

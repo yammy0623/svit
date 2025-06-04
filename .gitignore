@@ -233,3 +233,5 @@ data/
 wandb/
 example_plot.png
 .dist_test/
+result
+demo

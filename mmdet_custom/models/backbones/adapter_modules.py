@@ -439,7 +439,7 @@ class InteractionBlockWithSelection(InteractionBlock):
 
     def forward(self, x, c, indexes, deform_inputs1, deform_inputs2, H, W, blks, selective_modules, keep_ratio):
         n_skip = 3
-        print("before inject x shape", x.shape)
+        # print("before inject x shape", x.shape)
         x = self.injector(query=x, reference_points=deform_inputs1[0],
                           feat=c, spatial_shapes=deform_inputs1[1],
                           level_start_index=deform_inputs1[2])
@@ -449,8 +449,8 @@ class InteractionBlockWithSelection(InteractionBlock):
             if i < n_skip:
                 x = blks[i](x)
             else:
-                print(i)
-                print("before x shape", x.shape)
+                # print(i)
+                # print("before x shape", x.shape)
                 if self.training:
                     selector, diff_selector = selective_modules[i - n_skip](x)
                     x = diff_selector * blks[i](x, src_key_padding_mask=~selector) + \
@@ -537,6 +537,7 @@ class InteractionBlockWithSelection(InteractionBlock):
                 c = extractor(query=c, reference_points=deform_inputs2[0],
                               feat=x, spatial_shapes=deform_inputs2[1],
                               level_start_index=deform_inputs2[2], H=H, W=W)
+        
         return x, c, sele_dict
 
 
@@ -680,88 +681,18 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
             n_tokens = selector.shape[1]
             return ((selector.sum(dim=1) / n_tokens - ratio) ** 2).mean()
 
-    def _bipartite_soft_matching(
-        self,
-        metric: torch.Tensor,
-        r: int,
-        class_token: bool = False,
-        distill_token: bool = False,
-    ) -> Tuple[Callable, Callable]:
-        """
-        Applies ToMe with a balanced matching set (50%, 50%).
-
-        Input size is [batch, tokens, channels].
-        r indicates the number of tokens to remove (max 50% of tokens).
-
-        Extra args:
-        - class_token: Whether or not there's a class token.
-        - distill_token: Whether or not there's also a distillation token.
-
-        When enabled, the class token and distillation tokens won't get merged.
-        """
-        protected = 0
-        if class_token:
-            protected += 1
-        if distill_token:
-            protected += 1
-
-        # We can only reduce by a maximum of 50% tokens
-        t = metric.shape[1]
-        r = min(r, (t - protected) // 2)
-
-        if r <= 0:
-            return do_nothing, do_nothing
-        B, T, C = metric.shape
-        # metric 是 經過transformer分解的qkv
-        with torch.no_grad():
-            # breakpoint()
-
-            metric = metric / metric.norm(dim=-1, keepdim=True)
-            a, b = metric[..., ::2, :], metric[..., 1::2, :]
-            scores = a @ b.transpose(-1, -2) # 分數越高代表越相似
-            # print(scores)
-            # print("score shape", scores.shape) # score shape torch.Size([1, 1900, 1900])
-            # print("a shape", a.shape) # a shape torch.Size([1, 1900, 64])
-
-            if class_token:
-                scores[..., 0, :] = -math.inf
-            if distill_token:
-                scores[..., :, 0] = -math.inf
-
-            node_max, node_idx = scores.max(dim=-1) # torch.Size([1, 1900])
-            # print(node_max)
-            # print(node_max.shape)
-            edge_idx = node_max.argsort(dim=-1, descending=True)[..., None]
-
-            # 這邊算出來的都是兩兩分一半的分數
-            # 應該需要把他們映射回去，而且要思考是要選哪一邊做為pruning
-
-            # important_idx = edge_idx[..., r:, :].squeeze(-1)  # 保留的 index，形狀 [B, T - r]
-            prune_idx = edge_idx[..., :r, :].squeeze(-1)  # 保留的 index，形狀 [B, T - r]
-            
-            # print("important shape", important_idx.shape)
-            # print("edge shape", edge_idx.shape)
-
-            mask = torch.ones(B, T, dtype=torch.bool, device=metric.device)
-            # mask.scatter_(1, prune_idx, False)  # 將不要的 token 設為 False
-
-        # 目前看起來不是r多少 prune多少，而是好像本來就有一個prune的基數然後再根據r再額外多prune    
-        return mask
-
-    def forward(self, x, c, blks, deform_inputs1, deform_inputs2, H, W):
+    def forward(self, x, c, indexes, blks, deform_inputs1, deform_inputs2, H, W):
         x = self.injector(query=x, reference_points=deform_inputs1[0],
                           feat=c, spatial_shapes=deform_inputs1[1],
                           level_start_index=deform_inputs1[2])
         
         n_skip = 3
-
-        for i, blk in enumerate(blks):
-            
+        for i in range(indexes[0], indexes[-1] + 1):
             if i < n_skip:
-                x, metric = blks[i](x, 0, H, W)
+                x, metric, _ = blks[i](x, 0, H, W)
             else:
                 B, N, D = x.shape
-                x, metric = blks[i](x, self.r, H, W)
+                x, metric, _ = blks[i](x, self.r, H, W)
                
 
         c = self.extractor(query=c, reference_points=deform_inputs2[0],
@@ -773,6 +704,32 @@ class InteractionBlockWithToMeSelection(InteractionBlock):
                               feat=x, spatial_shapes=deform_inputs2[1],
                               level_start_index=deform_inputs2[2], H=H, W=W)
         return x, c
+
+    def forward_demo(self, x, c, indexes, blks, deform_inputs1, deform_inputs2, H, W):
+        x = self.injector(query=x, reference_points=deform_inputs1[0],
+                          feat=c, spatial_shapes=deform_inputs1[1],
+                          level_start_index=deform_inputs1[2])
+        
+        n_skip = 3
+        sele_dict = {}
+        for i in range(indexes[0], indexes[-1] + 1):
+            if i < n_skip:
+                x, metric, selector = blks[i](x, 0, H, W)
+            else:
+                B, N, D = x.shape
+                x, metric, selector = blks[i](x, self.r, H, W)
+                sele_dict[i] = selector # selector is a mask
+               
+
+        c = self.extractor(query=c, reference_points=deform_inputs2[0],
+                           feat=x, spatial_shapes=deform_inputs2[1],
+                           level_start_index=deform_inputs2[2], H=H, W=W)
+        if self.extra_extractors is not None:
+            for extractor in self.extra_extractors:
+                c = extractor(query=c, reference_points=deform_inputs2[0],
+                              feat=x, spatial_shapes=deform_inputs2[1],
+                              level_start_index=deform_inputs2[2], H=H, W=W)
+        return x, c, sele_dict
 
 
 

@@ -112,7 +112,7 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
 
     def forward(self, x, need_loss=False):
         # breakpoint()
-        print("start x", x.shape)
+        # print("start x", x.shape)
         deform_inputs1, deform_inputs2 = deform_inputs(x)
 
         # SPM forward
@@ -123,11 +123,11 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
         # Patch Embedding forward
         
         x, H, W = self.patch_embed(x)
-        print("H, W", H, W)
+        # print("H, W", H, W)
         bs, n, dim = x.shape
         pos_embed = self._get_pos_embed(self.pos_embed[:, 1:], H, W)
         x = self.pos_drop(x + pos_embed)
-        print("x oos drop", x.shape)
+        # print("x oos drop", x.shape)
 
         # Interaction
         if self.inherit_mask:
@@ -208,6 +208,11 @@ class SelectiveViTAdapter(SelectiveVisionTransformer):
                             deform_inputs1, deform_inputs2, H, W,
                             self.blocks, self.selective_modules, self.keep_ratio, self.sl_loc, prev_decision)
             sele_dict.update(sele_dict_)
+            # print("sele_dict", sele_dict_)
+            # if 3 in sele_dict_:
+            #     print("sele_dict shape", sele_dict_[3].shape) # sele_dict shape torch.Size([1, 3400])
+            # else:
+            #     print("Layer 3 not found in sele_dict_. Available layers:", sele_dict_.keys())
 
 
         # Split & Reshape

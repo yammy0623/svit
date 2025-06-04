@@ -95,8 +95,12 @@ def parse_args():
                         choices=['none', 'pytorch', 'slurm', 'mpi'],
                         default='none',
                         help='job launcher')
+    parser.add_argument('--r', type=int, default=0)
+    parser.add_argument('--logfile', type=str)
+    
     parser.add_argument('--local_rank', type=int, default=0)
     parser.add_argument('--plot-distribution', action='store_true', default=False)
+    
     args = parser.parse_args()
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -130,6 +134,9 @@ def main():
         raise ValueError('The output file must be a pkl file.')
 
     cfg = Config.fromfile(args.config)
+    # if not args.r == 0:
+    #     cfg.r = args.r
+    # print("config r", cfg.r)
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
     # set cudnn_benchmark
@@ -184,6 +191,7 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     rank, _ = get_dist_info()
+    
     # allows not to create
     if args.work_dir is not None and rank == 0:
         mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
@@ -247,6 +255,7 @@ def main():
                 eval_kwargs.pop(key, None)
             eval_kwargs.update(dict(metric=args.eval, **kwargs))
             metric = dataset.evaluate(outputs, **eval_kwargs)
+            print("print metrics")
             print(metric)
             metric_dict = dict(config=args.config, metric=metric)
             if args.work_dir is not None and rank == 0:

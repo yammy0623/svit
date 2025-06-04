@@ -19,7 +19,7 @@ from ops.modules import MSDeformAttn
 class ToMeViTAdapter(ToMeVisionTransformer):
     def __init__(self, pretrain_size=224, num_heads=12, conv_inplane=64, n_points=4, deform_num_heads=6,
                  init_values=0., interaction_indexes=None, with_cffn=True, cffn_ratio=0.25,
-                 deform_ratio=1.0, add_vit_feature=True, use_extra_extractor=True, *args, **kwargs):
+                 deform_ratio=1.0, add_vit_feature=True, use_extra_extractor=True, r=10, *args, **kwargs):
 
         super().__init__(num_heads=num_heads, *args, **kwargs)
 
@@ -29,13 +29,14 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         self.pretrain_size = (pretrain_size, pretrain_size)
         self.interaction_indexes = interaction_indexes
         self.add_vit_feature = add_vit_feature
+        
         embed_dim = self.embed_dim
 
         self.level_embed = nn.Parameter(torch.zeros(3, embed_dim))
         self.spm = SpatialPriorModule(inplanes=conv_inplane,
                                       embed_dim=embed_dim)
         self.interactions = nn.Sequential(*[
-            InteractionBlockWithToMeSelection(r=10, dim=embed_dim, num_heads=deform_num_heads, n_points=n_points,
+            InteractionBlockWithToMeSelection(r=r, dim=embed_dim, num_heads=deform_num_heads, n_points=n_points,
                              init_values=init_values, drop_path=self.drop_path_rate,
                              norm_layer=self.norm_layer, with_cffn=with_cffn,
                              cffn_ratio=cffn_ratio, deform_ratio=deform_ratio,
@@ -86,7 +87,7 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         c4 = c4 + self.level_embed[2]
         return c2, c3, c4
 
-    def forward(self, x):
+    def forward(self, x, need_loss=False):
         deform_inputs1, deform_inputs2 = deform_inputs(x)
 
         # SPM forward
@@ -110,7 +111,7 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         # Interaction
         for i, layer in enumerate(self.interactions):
             indexes = self.interaction_indexes[i]
-            x, c = layer(x, c, self.blocks[indexes[0]:indexes[-1] + 1],
+            x, c = layer(x, c, indexes, self.blocks,
                          deform_inputs1, deform_inputs2, H, W)
 
         # Split & Reshape
@@ -136,6 +137,72 @@ class ToMeViTAdapter(ToMeVisionTransformer):
         f3 = self.norm3(c3)
         f4 = self.norm4(c4)
         return [f1, f2, f3, f4]
+
+
+    def forward_demo(self, x, need_loss=False):
+        deform_inputs1, deform_inputs2 = deform_inputs(x)
+
+        # SPM forward
+        c1, c2, c3, c4 = self.spm(x)
+        c2, c3, c4 = self._add_level_embed(c2, c3, c4)
+        c = torch.cat([c2, c3, c4], dim=1)
+        # print("c: ", c.shape)
+    
+        # Patch Embedding forward
+        x, H, W = self.patch_embed(x)
+        # print("x before: ", x.shape)
+        bs, n, dim = x.shape
+        pos_embed = self._get_pos_embed(self.pos_embed[:, 1:], H, W)
+        x = self.pos_drop(x + pos_embed)
+        # print("x after embedded: ", x.shape)
+
+
+        # Selectors
+        selectors = torch.ones(x.shape[0], 12, H, W, device=x.device)  # hard code 12 blocks for DeiT
+        sele_dict = {}
+
+        # Interaction
+        for i, layer in enumerate(self.interactions):
+            indexes = self.interaction_indexes[i]
+            x, c, sele_dict_ = layer.forward_demo(x, c, indexes, self.blocks,
+                         deform_inputs1, deform_inputs2, H, W)
+            sele_dict.update(sele_dict_)
+            # print("sele_dict", sele_dict_)
+            # if 3 in sele_dict_:
+            #     print("sele_dict shape", sele_dict_[3].shape) # sele_dict shape torch.Size([1, 3400])
+            # else:
+            #     print("Layer 3 not found in sele_dict_. Available layers:", sele_dict_.keys())
+
+
+        # Split & Reshape
+        c2 = c[:, 0:c2.size(1), :]
+        c3 = c[:, c2.size(1):c2.size(1) + c3.size(1), :]
+        c4 = c[:, c2.size(1) + c3.size(1):, :]
+
+        c2 = c2.transpose(1, 2).view(bs, dim, H * 2, W * 2).contiguous()
+        c3 = c3.transpose(1, 2).view(bs, dim, H, W).contiguous()
+        c4 = c4.transpose(1, 2).view(bs, dim, H // 2, W // 2).contiguous()
+        c1 = self.up(c2) + c1
+
+        if self.add_vit_feature:
+            x3 = x.transpose(1, 2).view(bs, dim, H, W).contiguous()
+            x1 = F.interpolate(x3, scale_factor=4, mode='bilinear', align_corners=False)
+            x2 = F.interpolate(x3, scale_factor=2, mode='bilinear', align_corners=False)
+            x4 = F.interpolate(x3, scale_factor=0.5, mode='bilinear', align_corners=False)
+            c1, c2, c3, c4 = c1 + x1, c2 + x2, c3 + x3, c4 + x4
+
+        # Final Norm
+        f1 = self.norm1(c1)
+        f2 = self.norm2(c2)
+        f3 = self.norm3(c3)
+        f4 = self.norm4(c4)
+
+        selectors = selectors.permute(1, 0, 2, 3)  # (B, 12, H, W) -> (12, B, H, W)
+        for i, value in sele_dict.items():
+            selectors[i] = value.view(-1, H, W)
+        selectors = selectors.permute(1, 0, 2, 3)  # (12, B, H, W) -> (B, 12, H, W)
+
+        return [f1, f2, f3, f4], selectors
 
 def test_tomevit_forward():
     # 模擬輸入圖像：batch_size=2, channels=3, height=224, width=224

@@ -401,38 +401,109 @@ class ToMeBlock(Block):
         if r <= 0:
             mask = torch.ones(B, T, dtype=torch.bool, device=metric.device)
             return mask
-        # metric 是 經過transformer分解的qkv
+
         with torch.no_grad():
-            # breakpoint()
+            metric = metric / metric.norm(dim=-1, keepdim=True)  # normalize feature vectors
 
-            metric = metric / metric.norm(dim=-1, keepdim=True)
+            # Split tokens into two groups: a = even indices, b = odd indices
             a, b = metric[..., ::2, :], metric[..., 1::2, :]
-            scores = a @ b.transpose(-1, -2) # 分數越高代表越相似
-            # print(scores)
-            # print("score shape", scores.shape) # score shape torch.Size([1, 1900, 1900])
-            # print("a shape", a.shape) # a shape torch.Size([1, 1900, 64])
 
+            # Compute similarity scores between every pair (a_i, b_j)
+            scores = a @ b.transpose(-1, -2)  # shape [B, T/2, T/2]
+
+            # Protect class token and distill token by setting their scores to -inf
             if class_token:
-                scores[..., 0, :] = -math.inf
+                scores[..., 0, :] = -math.inf  # a's first token is class token, avoid merging it
             if distill_token:
-                scores[..., :, 0] = -math.inf
+                scores[..., :, 0] = -math.inf  # b's first token is distill token, avoid merging it
 
-            node_max, node_idx = scores.max(dim=-1) # torch.Size([1, 1900])
-            edge_idx = node_max.argsort(dim=-1, descending=True)[..., None]
+            # For each token in a, find the most similar token in b
+            node_max, node_idx = scores.max(dim=-1)  # node_max: max similarity; node_idx: index in b
 
-            # 這邊算出來的都是兩兩分一半的分數
-            # 應該需要把他們映射回去，而且要思考是要選哪一邊做為pruning
+            # Sort the pairs by descending similarity to prioritize pruning
+            edge_idx = node_max.argsort(dim=-1, descending=True)[..., None]  # indices in a
 
-            prune_idx = edge_idx[..., :r, :].squeeze(-1)  # 保留的 index，形狀 [B, T - r]
-            
-            # print("important shape", important_idx.shape)
-            # print("edge shape", edge_idx.shape)
+            # Select top r tokens from a side to prune (indices in a)
+            prune_a_idx = edge_idx[..., :r, :].squeeze(-1)  # shape [B, r]
+
+            # Map prune indices in 'a' (even indices) back to original token indices in metric
+            prune_idx = prune_a_idx * 2  # because 'a' tokens are at even indices in metric
 
             mask = torch.ones(B, T, dtype=torch.bool, device=metric.device)
-            mask.scatter_(1, prune_idx, False)  # 將不要的 token 設為 False
+            mask.scatter_(1, prune_idx, False)  # mark pruned tokens as False
 
-        # 目前看起來不是r多少 prune多少，而是好像本來就有一個prune的基數然後再根據r再額外多prune    
         return mask
+
+    # def _bipartite_soft_matching(
+    #     self,
+    #     metric: torch.Tensor,
+    #     r: int,
+    #     class_token: bool = False,
+    #     distill_token: bool = False,
+    # ):
+    #     """
+    #     Applies ToMe with a balanced matching set (50%, 50%).
+
+    #     Input size is [batch, tokens, channels].
+    #     r indicates the number of tokens to remove (max 50% of tokens).
+
+    #     Extra args:
+    #     - class_token: Whether or not there's a class token.
+    #     - distill_token: Whether or not there's also a distillation token.
+
+    #     When enabled, the class token and distillation tokens won't get merged.
+    #     """
+    #     protected = 0
+    #     if class_token:
+    #         protected += 1
+    #     if distill_token:
+    #         protected += 1
+
+    #     # We can only reduce by a maximum of 50% tokens
+    #     t = metric.shape[1]
+    #     r = min(r, (t - protected) // 2)
+    #     B, T, C = metric.shape
+
+    #     if r <= 0:
+    #         mask = torch.ones(B, T, dtype=torch.bool, device=metric.device)
+    #         return mask
+    #     # metric 是 經過transformer分解的qkv
+    #     with torch.no_grad():
+    #         # breakpoint()
+
+    #         metric = metric / metric.norm(dim=-1, keepdim=True)
+    #         a, b = metric[..., ::2, :], metric[..., 1::2, :]
+    #         scores = a @ b.transpose(-1, -2) # 分數越高代表越相似
+    #         # print(scores)
+    #         # print("score shape", scores.shape) # score shape torch.Size([1, 1900, 1900])
+    #         # print("a shape", a.shape) # a shape torch.Size([1, 1900, 64])
+
+    #         if class_token:
+    #             scores[..., 0, :] = -math.inf
+    #         if distill_token:
+    #             scores[..., :, 0] = -math.inf
+
+    #         node_max, node_idx = scores.max(dim=-1) # torch.Size([1, 1900])
+    #         edge_idx = node_max.argsort(dim=-1, descending=True)[..., None]
+
+    #         # 這邊算出來的都是兩兩分一半的分數
+    #         # 應該需要把他們映射回去，而且要思考是要選哪一邊做為pruning
+
+    #         prune_idx = edge_idx[..., :r, :].squeeze(-1)  # 保留的 index，形狀 [B, T - r]
+            
+    #         # print("important shape", important_idx.shape)
+    #         # print("edge shape", edge_idx.shape)
+
+    #         mask = torch.ones(B, T, dtype=torch.bool, device=metric.device)
+    #         mask.scatter_(1, prune_idx, False)  # 將不要的 token 設為 False
+
+
+    #     # 目前看起來不是r多少 prune多少，而是好像本來就有一個prune的基數然後再根據r再額外多prune    
+    #     return mask
+    
+
+
+
     # based on original forwad
     def forward_metric_output(self, x, r, H, W):
         
@@ -472,10 +543,10 @@ class ToMeBlock(Block):
                 x = self.residual(x)
                 x = x.permute(0, 2, 3, 1).reshape(B, N, C)
             
-            print("Before merging: ", x.shape)
-            print("After merging: ", selected_x.shape)
-            x = selected_x.clone()
-            # x = x.scatter(1, real_indices, selected_x)
+            # print("Before merging: ", x.shape)
+            # print("After merging: ", selected_x.shape)
+            # x = selected_x.clone()
+            x = x.scatter(1, real_indices, selected_x)
             # print("x4", x)
             # breakpoint()
                 
@@ -491,19 +562,18 @@ class ToMeBlock(Block):
             # else:
             #     print("Non-masked patches differ! Max difference:", diff.item())
     
-            return x, metric
+            return x, metric, mask
 
         if self.with_cp and x.requires_grad:
             x = cp.checkpoint(_inner_forward, x)
         else:
-            x, metric = _inner_forward(x)
+            x, metric, mask = _inner_forward(x)
         
-        return x, metric
+        return x, metric, mask
     def forward(self, x, r, H, W):
-        r = 100
         # self.forward_merge(x, H, W)
-        x, metric = self.forward_metric_output(x, r, H, W)
-        return x, metric
+        x, metric, mask  = self.forward_metric_output(x, r, H, W)
+        return x, metric, mask 
 
 
 
@@ -520,7 +590,7 @@ class ToMeVisionTransformer(BaseModule):
                  depth=12, num_heads=12, mlp_ratio=4., qkv_bias=True, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0., layer_scale=True, embed_layer=PatchEmbed, norm_layer=partial(nn.LayerNorm, eps=1e-6),
                  act_layer=nn.GELU, window_attn=False, window_size=14, with_cp=False, pretrained=None, 
-                 r: int = 7, trace_source: bool = False, prop_attn: bool = True):
+                 r = 7, trace_source: bool = False, prop_attn: bool = True):
         """
         Args:
             img_size (int, tuple): input image size
@@ -539,6 +609,7 @@ class ToMeVisionTransformer(BaseModule):
             norm_layer: (nn.Module): normalization layer
             pretrained: (str): pretrained path
             with_cp: (bool): use checkpoint or not
+            r (int): number of tokens to remove in Bipartite Soft Matching.
         """
         super().__init__()
         # self.num_classes = num_classes
